@@ -4,7 +4,7 @@ import re
 import os
 from io import BytesIO
 import pyodbc
-breakpoint
+
 st.title("Distress Data Quality Checks")
 st.text("This app is used to checks errors from mdb files")
 
