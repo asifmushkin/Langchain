@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 from serpapi import GoogleSearch
+import os
 
-def fetch_local_results(query, latitude, longitude, out_file_name):
+def fetch_local_results(query, latitude, longitude):
     local_results = []
     i = 0
     while True:
@@ -11,7 +12,7 @@ def fetch_local_results(query, latitude, longitude, out_file_name):
             "q": query,
             "ll": f"@{latitude},{longitude},21.1z",
             "type": "search",
-            "api_key": "ef953cf9cb5bee9b78f26bc0e1a229fef9cb8b4d57849371857e0acab647c540",
+            "api_key": "1c0d0d157cae2b4c6141913fbb2153e71107661901ea4cdb52dc0bc0be0ef196",
             "start": i
         }
 
@@ -26,16 +27,12 @@ def fetch_local_results(query, latitude, longitude, out_file_name):
             print(f"No local results found for page {i}.")
             break  # Exit the loop if no local results are found for the current page
 
-    # Save local_results to a file
-    with open(out_file_name, 'w') as file:
-        for result in local_results:
-            file.write(str(result) + '\n')
+    # Convert local_results to plain text
+    plain_text = "\n".join(str(result) for result in local_results)
+    return plain_text
 
-    return out_file_name
-
-def convert_to_excel(input_file_path, output_file_path):
-    with open(input_file_path, 'r') as file:
-        lines = file.readlines()
+def convert_to_excel(input_text, output_file_name):
+    lines = input_text.split('\n')
 
     # Initialize a list to store all keys
     all_keys = set()
@@ -66,40 +63,40 @@ def convert_to_excel(input_file_path, output_file_path):
     # Create a DataFrame
     df = pd.DataFrame(data)
 
+    # Get the directory of the input file
+    output_dir = os.getcwd()  # Current working directory
+    output_file_path = os.path.join(output_dir, output_file_name)
+
     # Save DataFrame to Excel file
     df.to_excel(output_file_path, index=False)
 
+    return output_file_path
+
 # Streamlit app
 def main():
-    st.title("Local Results to Excel Converter")
+    st.title("Google Maps Data Scrapping")
 
     # Input fields
-    query = st.text_input("Type required search")
-    latitude = st.text_input("Enter latitude")
-    longitude = st.text_input("Enter longitude")
-    out_file_name = st.text_input("Enter output file name")
+    query = st.text_input("Type required search(like,hotels,schools,malls,etc: ")
+    latitude = st.text_input("Enter latitude: ")
+    longitude = st.text_input("Enter longitude: ")
 
     if st.button("Fetch Local Results"):
-        if query and latitude and longitude and out_file_name:
+        if query and latitude and longitude:
             with st.spinner("Fetching local results..."):
-                file_path = fetch_local_results(query, latitude, longitude, out_file_name)
-            st.success(f"Local results fetched successfully. Saved to {file_path}")
+                plain_text = fetch_local_results(query, latitude, longitude)
+            st.success("Local results fetched successfully.")
+            
+            # Convert plain text to Excel
+            with st.spinner("Converting to Excel..."):
+                output_file_path = convert_to_excel(plain_text, "output_excel_file.xlsx")
+            st.success("Conversion completed successfully.")
 
-    # File uploader
-    uploaded_file = st.file_uploader("Upload a text file", type=["txt"])
-
-    if uploaded_file is not None:
-        file_details = {"Filename": uploaded_file.name, "FileType": uploaded_file.type}
-        st.write(file_details)
-
-        # Convert text to Excel
-        if st.button("Convert to Excel"):
-            with st.spinner("Converting..."):
-                convert_to_excel(uploaded_file.name, "output_excel_file.xlsx")
-            st.success("Conversion completed successfully. Download your Excel file below.")
-
-            # Download link for the converted Excel file
-            st.markdown("[Download Excel file](output_excel_file.xlsx)", unsafe_allow_html=True)
+            # Provide a link to download the Excel file
+            st.markdown(
+                f"[Download Excel file]({output_file_path})",
+                unsafe_allow_html=True
+            )
 
 if __name__ == "__main__":
     main()
